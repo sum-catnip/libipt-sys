@@ -1,0 +1,17 @@
+[package]
+name = "libipt-sys"
+description = "raw bindings to the libipt intel processor tracing library"
+repository = "https://github.com/sum-catnip/libipt-sys"
+license = "MIT"
+version = "0.1.1"
+documentation = "https://docs.rs/libipt-sys/0.1.1/libipt_sys/"
+authors = ["catnip <catnip@catnip.fyi>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+[build-dependencies]
+cmake = "0.1.42"
+bindgen = "0.52.0"
