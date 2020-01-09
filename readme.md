@@ -1,5 +1,5 @@
 # libipt-sys
-low level rustgen bindings for the [libipt](https://github.com/intel/libipt) library.
+low level bindgen bindings for the [libipt](https://github.com/intel/libipt) library.
 
 ## building
 
