@@ -4,7 +4,7 @@ low level bindgen bindings for the [libipt](https://github.com/intel/libipt) lib
 ## building
 
 clone this repo and the submodules with
-> git clone https://github.com/sum-catnip/winipt-sys.git --recursive
+> git clone https://github.com/sum-catnip/libipt-sys.git --recursive
 
 simply run `cargo build` and you should be fine.
 If that doesnt work, make sure you got all the requirements covered.
