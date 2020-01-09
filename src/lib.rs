@@ -4,5 +4,12 @@
 
 include!("bindings.rs");
 
-// i have absolutely no idea how to test this thing
-// so i dont, sorry
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_lib_link() {
+        unsafe { pt_library_version() };
+    }
+}
