@@ -6,7 +6,11 @@ fn main() {
         .define("BUILD_SHARED_LIBS", "OFF")
         .build();
 
+    #[cfg(windows)]
     println!("cargo:rustc-link-lib=static=libipt");
+    #[cfg(not(windows))]
+    println!("cargo:rustc-link-lib=static=ipt");
+
     println!("cargo:rustc-link-search=native={}",
              dst.join("lib").to_str().unwrap());
 
