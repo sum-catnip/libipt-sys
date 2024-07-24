@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2013-2019, Intel Corporation
+ * Copyright (c) 2013-2023, Intel Corporation
+ * SPDX-License-Identifier: BSD-3-Clause
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -45,6 +46,7 @@ extern "C" {
  * - Errors
  * - Configuration
  * - Packet encoder / decoder
+ * - Event decoder
  * - Query decoder
  * - Traced image
  * - Instruction flow decoder
@@ -55,6 +57,7 @@ extern "C" {
 
 struct pt_encoder;
 struct pt_packet_decoder;
+struct pt_event_decoder;
 struct pt_query_decoder;
 struct pt_insn_decoder;
 struct pt_block_decoder;
@@ -79,7 +82,7 @@ struct pt_block_decoder;
 
 /** The header version. */
 #define LIBIPT_VERSION_MAJOR 2
-#define LIBIPT_VERSION_MINOR 0
+#define LIBIPT_VERSION_MINOR 1
 #define LIBIPT_VERSION_PATCH 0
 
 #define LIBIPT_VERSION ((LIBIPT_VERSION_MAJOR << 8) + LIBIPT_VERSION_MINOR)
@@ -341,6 +344,21 @@ struct pt_errata {
 	 */
 	uint32_t skl168:1;
 
+	/** SKZ84: Use of VMX TSC Scaling or TSC Offsetting Will Result in
+	 *         Corrupted Intel PT Packets
+	 *
+	 * When Intel(R) PT (Processor Trace) is enabled within a VMX (Virtual
+	 * Machine Extensions) guest, and TSC (Time Stamp Counter) offsetting
+	 * or TSC scaling is enabled for that guest, by setting primary
+	 * processor-based execution control bit 3 or secondary processor-based
+	 * execution control bit 25, respectively, in the VMCS (Virtual Machine
+	 * Control Structure) for that guest, any TMA (TSC(MTC Alignment)
+	 * packet generated will have corrupted values in the CTC (Core Timer
+	 * Copy) and FastCounter fields.  Additionally, the corrupted TMA
+	 * packet will be followed by a bogus data byte.
+	 */
+	uint32_t skz84:1;
+
 	/* Reserve a few bytes for the future. */
 	uint32_t reserved[15];
 };
@@ -360,8 +378,17 @@ struct pt_conf_flags {
 			/** End a block after a jump instruction. */
 			uint32_t end_on_jump:1;
 
+#if (LIBIPT_VERSION >= 0x201)
 			/** Preserve timing calibration on overflow. */
 			uint32_t keep_tcal_on_ovf:1;
+
+			/** Enable iflags events.
+			 *
+			 * Use this only when Event Tracing was enabled via
+			 * IA32_RTIT_CTL[31].
+			 */
+			uint32_t enable_iflags_events:1;
+#endif
 		} block;
 
 		/** Flags for the instruction flow decoder. */
@@ -369,15 +396,46 @@ struct pt_conf_flags {
 			/** Enable tick events for timing updates. */
 			uint32_t enable_tick_events:1;
 
+#if (LIBIPT_VERSION >= 0x201)
 			/** Preserve timing calibration on overflow. */
 			uint32_t keep_tcal_on_ovf:1;
+
+			/** Enable iflags events.
+			 *
+			 * Use this only when Event Tracing was enabled via
+			 * IA32_RTIT_CTL[31].
+			 */
+			uint32_t enable_iflags_events:1;
+#endif
 		} insn;
 
+#if (LIBIPT_VERSION >= 0x201)
 		/** Flags for the query decoder. */
 		struct {
 			/** Preserve timing calibration on overflow. */
 			uint32_t keep_tcal_on_ovf:1;
+
+			/** Enable iflags events.
+			 *
+			 * Use this only when Event Tracing was enabled via
+			 * IA32_RTIT_CTL[31].
+			 */
+			uint32_t enable_iflags_events:1;
 		} query;
+
+		/** Flags for the event decoder. */
+		struct {
+			/** Preserve timing calibration on overflow. */
+			uint32_t keep_tcal_on_ovf:1;
+
+			/** Enable iflags events.
+			 *
+			 * Use this only when Event Tracing was enabled via
+			 * IA32_RTIT_CTL[31].
+			 */
+			uint32_t enable_iflags_events:1;
+		} event;
+#endif /* (LIBIPT_VERSION >= 0x201) */
 
 		/* Reserve a few bytes for future extensions. */
 		uint32_t reserved[4];
@@ -552,7 +610,11 @@ enum pt_packet_type {
 	ppt_mwait,
 	ppt_pwre,
 	ppt_pwrx,
-	ppt_ptw
+	ppt_ptw,
+#if (LIBIPT_VERSION >= 0x201)
+	ppt_cfe,
+	ppt_evd,
+#endif
 };
 
 /** The IP compression. */
@@ -618,6 +680,14 @@ struct pt_packet_mode_exec {
 
 	/** The mode.exec csd bit. */
 	uint32_t csd:1;
+
+#if (LIBIPT_VERSION >= 0x201)
+	/** The mode.exec if bit.
+	 *
+	 * Enable Event Tracing to get updates when IF changes.
+	 */
+	uint32_t iflag:1;
+#endif
 };
 
 static inline enum pt_exec_mode
@@ -634,6 +704,7 @@ pt_set_exec_mode(enum pt_exec_mode mode)
 {
 	struct pt_packet_mode_exec packet;
 
+	memset(&packet, 0, sizeof(packet));
 	switch (mode) {
 	default:
 		packet.csl = 1;
@@ -642,17 +713,13 @@ pt_set_exec_mode(enum pt_exec_mode mode)
 
 	case ptem_64bit:
 		packet.csl = 1;
-		packet.csd = 0;
 		break;
 
 	case ptem_32bit:
-		packet.csl = 0;
 		packet.csd = 1;
 		break;
 
 	case ptem_16bit:
-		packet.csl = 0;
-		packet.csd = 0;
 		break;
 	}
 
@@ -820,6 +887,92 @@ static inline int pt_ptw_size(uint8_t plc)
 	return -pte_internal;
 }
 
+#if (LIBIPT_VERSION >= 0x201)
+/* Control-flow event types. */
+enum pt_cfe_type {
+	pt_cfe_intr		= 0x01,
+	pt_cfe_iret		= 0x02,
+	pt_cfe_smi		= 0x03,
+	pt_cfe_rsm		= 0x04,
+	pt_cfe_sipi		= 0x05,
+	pt_cfe_init		= 0x06,
+	pt_cfe_vmentry		= 0x07,
+	pt_cfe_vmexit		= 0x08,
+	pt_cfe_vmexit_intr	= 0x09,
+	pt_cfe_shutdown		= 0x0a,
+	pt_cfe_uintr		= 0x0c,
+	pt_cfe_uiret		= 0x0d,
+};
+
+/* Interrupt vectors defined in Table 6-1 in §6.5 of Vol.1 of the SDM. */
+enum pt_cfe_intr {
+	pt_cfe_intr_de		= 0,	/* Divide Error. */
+	pt_cfe_intr_db		= 1,	/* Debug. */
+	pt_cfe_intr_nmi		= 2,	/* Non Maskable Interrupt. */
+	pt_cfe_intr_bp		= 3,	/* Breakpoint. */
+	pt_cfe_intr_of		= 4,	/* Overflow. */
+	pt_cfe_intr_br		= 5,	/* Bound Range Exceeded. */
+	pt_cfe_intr_ud		= 6,	/* Undefined Opcode. */
+	pt_cfe_intr_nm		= 7,	/* Device Not Available. */
+	pt_cfe_intr_df		= 8,	/* Double Fault. */
+	pt_cfe_intr_ts		= 10,	/* Invalid TSS. */
+	pt_cfe_intr_np		= 11,	/* Segment Not Present. */
+	pt_cfe_intr_ss		= 12,	/* Stack Segment Fault. */
+	pt_cfe_intr_gp		= 13,	/* General Protection Fault. */
+	pt_cfe_intr_pf		= 14,	/* Page Fault. */
+	pt_cfe_intr_mf		= 16,	/* Math Fault. */
+	pt_cfe_intr_ac		= 17,	/* Alignment Check. */
+	pt_cfe_intr_mc		= 18,	/* Machine Check. */
+	pt_cfe_intr_xm		= 19,	/* SIMD Floating Point Exception. */
+	pt_cfe_intr_ve		= 20,	/* Virtualization Exception. */
+	pt_cfe_intr_cp		= 21,	/* Control Protection Exception. */
+};
+
+/** A CFE packet. */
+struct pt_packet_cfe {
+	/** The type of control-flow event. */
+	enum pt_cfe_type type;
+
+	/** The vector depending on the type:
+	 *
+	 *  pt_cfe_intr:	the event vector.
+	 *  pt_cfe_vmexit_intr:	the event vector.
+	 *  pt_cfe_sipi:	the SIPI vector.
+	 *  pt_cfe_uintr:	the user interrupt vector.
+	 */
+	uint8_t vector;
+
+	/** A flag specifying the binding of the packet:
+	 *
+	 *   set:    binds to the next FUP.
+	 *   clear:  binds to the next FUP + TIP, if tracing enabled.
+	 *   clear:  standalone, if tracing disabled.
+	 */
+	uint32_t ip:1;
+};
+
+/* Event data types. */
+enum pt_evd_type {
+	pt_evd_cr2		= 0x00, /* Page fault linear address (cr2). */
+	pt_evd_vmxq		= 0x01, /* VMX exit qualification. */
+	pt_evd_vmxr		= 0x02, /* VMX exit reason. */
+};
+
+/** A EVD packet. */
+struct pt_packet_evd {
+	/** The type of control-flow event. */
+	enum pt_evd_type type;
+
+	/** The payload depending on the type:
+	 *
+	 *  0x00: page fault linear address (cr2).
+	 *  0x01: vmx exit qualification.
+	 *  0x02: vmx exit reason.
+	 */
+	uint64_t payload;
+};
+#endif /* (LIBIPT_VERSION >= 0x201) */
+
 /** An unknown packet decodable by the optional decoder callback. */
 struct pt_packet_unknown {
 	/** Pointer to the raw packet bytes. */
@@ -892,6 +1045,13 @@ struct pt_packet {
 		/** Packet: ptw. */
 		struct pt_packet_ptw ptw;
 
+#if (LIBIPT_VERSION >= 0x201)
+		/** Packet: cfe. */
+		struct pt_packet_cfe cfe;
+
+		/** Packet: evd. */
+		struct pt_packet_evd evd;
+#endif
 		/** Packet: unknown. */
 		struct pt_packet_unknown unknown;
 	} payload;
@@ -1080,21 +1240,9 @@ extern pt_export int pt_pkt_next(struct pt_packet_decoder *decoder,
 
 
 
-/* Query decoder. */
+/* Event decoder. */
 
 
-
-/** Decoder status flags. */
-enum pt_status_flag {
-	/** There is an event pending. */
-	pts_event_pending	= 1 << 0,
-
-	/** The address has been suppressed. */
-	pts_ip_suppressed	= 1 << 1,
-
-	/** There is no more trace data available. */
-	pts_eos			= 1 << 2
-};
 
 /** Event types. */
 enum pt_event_type {
@@ -1154,7 +1302,55 @@ enum pt_event_type {
 	ptev_cbr,
 
 	/* A maintenance event. */
-	ptev_mnt
+	ptev_mnt,
+
+#if (LIBIPT_VERSION >= 0x201)
+	/* An indirect branch event. */
+	ptev_tip,
+
+	/* A conditional branch indicator event. */
+	ptev_tnt,
+
+	/* An interrupt status event. */
+	ptev_iflags,
+
+	/* An interrupt or exception event.
+	 *
+	 * This event extends the async_branch event generated for the
+	 * control-flow change; it does not replace that event.
+	 */
+	ptev_interrupt,
+
+	/* A return from interrupt event. */
+	ptev_iret,
+
+	/* A system management interrupt. */
+	ptev_smi,
+
+	/* A return from system management mode. */
+	ptev_rsm,
+
+	/* A SIPI message. */
+	ptev_sipi,
+
+	/* An INIT reset. */
+	ptev_init,
+
+	/* A Virtual Machine entry. */
+	ptev_vmentry,
+
+	/* A Virtual Machine exit. */
+	ptev_vmexit,
+
+	/* A shutdown event. */
+	ptev_shutdown,
+
+	/* A user interrupt. */
+	ptev_uintr,
+
+	/* A return from user interrupt. */
+	ptev_uiret,
+#endif
 };
 
 /** An event. */
@@ -1433,7 +1629,8 @@ struct pt_event {
 
 		/** Event: tick. */
 		struct {
-			/** The instruction address near which the tick occured.
+			/** The instruction address near which the tick
+			 *  occurred.
 			 *
 			 * A timestamp can sometimes be attributed directly to
 			 * an instruction (e.g. to an indirect branch that
@@ -1455,9 +1652,324 @@ struct pt_event {
 			/** The raw payload. */
 			uint64_t payload;
 		} mnt;
+
+#if (LIBIPT_VERSION >= 0x201)
+		/** Event: tip. */
+		struct {
+			/** The target instruction address. */
+			uint64_t ip;
+		} tip;
+
+		/** Event: tnt. */
+		struct {
+			/** A sequence of conditional branch indicator bits.
+			 *
+			 * Indicators are ordered from oldest (bits[size-1]) to
+			 * youngest (bits[0]) branch:
+			 *
+			 *   0...branch not taken
+			 *   1...branch taken
+			 */
+			uint64_t bits;
+
+			/** The number of valid bits in @bits. */
+			uint8_t size;
+		} tnt;
+
+		/** Event: iflags. */
+		struct {
+			/** The EFLAGS.IF status. */
+			uint32_t iflag:1;
+
+			/** The address of the instruction at which the new
+			 * status applies.
+			 *
+			 * This field is not valid, if \@ip_suppressed is set.
+			 */
+			uint64_t ip;
+		} iflags;
+
+		/** Event: interrupt/exception. */
+		struct {
+			/** A flag saying whether the \@cr2 field is valid. */
+			uint32_t has_cr2:1;
+
+			/** The interrupt/exception vector. */
+			uint8_t vector;
+
+			/** The page fault linear address in cr2.
+			 *
+			 * This field is only valid if \@has_cr2 is set.
+			 */
+			uint64_t cr2;
+
+			/** The address of the instruction at which the
+			 * interrupt or exception occurred.
+			 *
+			 * For faults, this will be the faulting instruction.
+			 * For traps, this will be the next instruction.
+			 *
+			 * This field is not valid, if \@ip_suppressed is set.
+			 */
+			uint64_t ip;
+		} interrupt;
+
+		/** Event: iret. */
+		struct {
+			/** The address of the instruction.
+			 *
+			 * This field is not valid, if \@ip_suppressed is set.
+			 */
+			uint64_t ip;
+		} iret;
+
+		/** Event: smi. */
+		struct {
+			/** The address of the instruction at/before which the
+			 * system management interrupt occurred.
+			 *
+			 * This field is not valid, if \@ip_suppressed is set.
+			 */
+			uint64_t ip;
+		} smi;
+
+		/** Event: rsm. */
+		struct {
+			/** The address of the instruction.
+			 *
+			 * This field is not valid, if \@ip_suppressed is set.
+			 */
+			uint64_t ip;
+		} rsm;
+
+		/** Event: sipi. */
+		struct {
+			/** The SIPI vector. */
+			uint8_t vector;
+		} sipi;
+
+		/** Event: init. */
+		struct {
+			/** The address of the instruction.
+			 *
+			 * This field is not valid, if \@ip_suppressed is set.
+			 */
+			uint64_t ip;
+		} init;
+
+		/** Event: vmentry. */
+		struct {
+			/** The address of the instruction.
+			 *
+			 * This field is not valid, if \@ip_suppressed is set.
+			 */
+			uint64_t ip;
+		} vmentry;
+
+		/** Event: vmexit. */
+		struct {
+			/** A flag saying whether the \@vector field is valid.
+			 *
+			 * When set, the vmexit occurred due to an interrupt or
+			 * exception.
+			 */
+			uint32_t has_vector:1;
+
+			/** A flag saying whether the \@vmxr field is valid. */
+			uint32_t has_vmxr:1;
+
+			/** A flag saying whether the \@vmxq field is valid. */
+			uint32_t has_vmxq:1;
+
+			/** The interrupt/exception vector.
+			 *
+			 * This field is only valid if \@has_vector is set.
+			 */
+			uint8_t vector;
+
+			/** The vmexit reason.
+			 *
+			 * This field is only valid if \@has_vmxr is set.
+			 */
+			uint64_t vmxr;
+
+			/** The vmexit qualification.
+			 *
+			 * This field is only valid if \@has_vmxq is set.
+			 */
+			uint64_t vmxq;
+
+			/** The address of the instruction at which the
+			 * interrupt or exception occurred.
+			 *
+			 * For faults, this will be the faulting instruction.
+			 * For traps, this will be the next instruction.
+			 *
+			 * This field is not valid, if \@ip_suppressed is set.
+			 */
+			uint64_t ip;
+		} vmexit;
+
+		/** Event: shutdown. */
+		struct {
+			/** The address of the first instruction that did not
+			 * complete due to the shutdown.
+			 *
+			 * This field is not valid, if \@ip_suppressed is set.
+			 */
+			uint64_t ip;
+		} shutdown;
+
+		/** Event: user interrupt. */
+		struct {
+			/** The user interrupt vector. */
+			uint8_t vector;
+
+			/** The address of the instruction before which the
+			 * user interrupt was delivered.
+			 *
+			 * This field is not valid, if \@ip_suppressed is set.
+			 */
+			uint64_t ip;
+		} uintr;
+
+		/** Event: uiret. */
+		struct {
+			/** The address of the instruction.
+			 *
+			 * This field is not valid, if \@ip_suppressed is set.
+			 */
+			uint64_t ip;
+		} uiret;
+#endif /* (LIBIPT_VERSION >= 0x201) */
 	} variant;
 };
 
+
+#if (LIBIPT_VERSION >= 0x201)
+/** Allocate an Intel PT event decoder.
+ *
+ * The decoder will work on the buffer defined in \@config, it shall contain
+ * raw trace data and remain valid for the lifetime of the decoder.
+ *
+ * The decoder needs to be synchronized before it can be used.
+ */
+extern pt_export struct pt_event_decoder *
+pt_evt_alloc_decoder(const struct pt_config *config);
+
+/** Free an Intel PT event decoder.
+ *
+ * The \@decoder must not be used after a successful return.
+ */
+extern pt_export void pt_evt_free_decoder(struct pt_event_decoder *decoder);
+
+/** Synchronize an Intel PT event decoder.
+ *
+ * Search for the next synchronization point in forward or backward direction.
+ *
+ * If \@decoder has not been synchronized, yet, the search is started at the
+ * beginning of the trace buffer in case of forward synchronization and at the
+ * end of the trace buffer in case of backward synchronization.
+ *
+ * Returns zero or a positive value on success, a negative error code otherwise.
+ *
+ * Returns -pte_bad_opc if an unknown packet is encountered.
+ * Returns -pte_bad_packet if an unknown packet payload is encountered.
+ * Returns -pte_eos if no further synchronization point is found.
+ * Returns -pte_invalid if \@decoder is NULL.
+ */
+extern pt_export int pt_evt_sync_forward(struct pt_event_decoder *decoder);
+extern pt_export int pt_evt_sync_backward(struct pt_event_decoder *decoder);
+
+/** Manually synchronize an Intel PT event decoder.
+ *
+ * Synchronize \@decoder on the syncpoint at \@offset.  There must be a PSB
+ * packet at \@offset.
+ *
+ * Returns zero or a positive value on success, a negative error code otherwise.
+ *
+ * Returns -pte_bad_opc if an unknown packet is encountered.
+ * Returns -pte_bad_packet if an unknown packet payload is encountered.
+ * Returns -pte_eos if \@offset lies outside of \@decoder's trace buffer.
+ * Returns -pte_eos if \@decoder reaches the end of its trace buffer.
+ * Returns -pte_invalid if \@decoder is NULL.
+ * Returns -pte_nosync if there is no syncpoint at \@offset.
+ */
+extern pt_export int pt_evt_sync_set(struct pt_event_decoder *decoder,
+				     uint64_t offset);
+
+/** Get the current decoder position.
+ *
+ * Fills the current \@decoder position into \@offset.
+ *
+ * This is useful for reporting errors.
+ *
+ * Returns zero on success, a negative error code otherwise.
+ *
+ * Returns -pte_invalid if \@decoder or \@offset is NULL.
+ * Returns -pte_nosync if \@decoder is out of sync.
+ */
+extern pt_export int pt_evt_get_offset(const struct pt_event_decoder *decoder,
+				       uint64_t *offset);
+
+/** Get the position of the last synchronization point.
+ *
+ * Fills the last synchronization position into \@offset.
+ *
+ * This is useful for splitting a trace stream for parallel decoding.
+ *
+ * Returns zero on success, a negative error code otherwise.
+ *
+ * Returns -pte_invalid if \@decoder or \@offset is NULL.
+ * Returns -pte_nosync if \@decoder is out of sync.
+ */
+extern pt_export int
+pt_evt_get_sync_offset(const struct pt_event_decoder *decoder,
+		       uint64_t *offset);
+
+/* Return a pointer to \@decoder's configuration.
+ *
+ * Returns a non-null pointer on success, NULL if \@decoder is NULL.
+ */
+extern pt_export const struct pt_config *
+pt_evt_get_config(const struct pt_event_decoder *decoder);
+
+/** Determine the next event.
+ *
+ * On success, provides the next event in \@event.
+ *
+ * The \@size argument must be set to sizeof(struct pt_event).
+ *
+ * Returns zero or a positive value on success, a negative error code
+ * otherwise.
+ *
+ * Returns -pte_bad_opc if the packet is unknown.
+ * Returns -pte_bad_packet if an unknown packet payload is encountered.
+ * Returns -pte_eos if \@decoder reached the end of the Intel PT buffer.
+ * Returns -pte_invalid if \@decoder or \@event is NULL.
+ * Returns -pte_nosync if \@decoder is out of sync.
+ */
+extern pt_export int pt_evt_next(struct pt_event_decoder *decoder,
+				 struct pt_event *event, size_t size);
+#endif /* (LIBIPT_VERSION >= 0x201) */
+
+
+
+/* Query decoder. */
+
+
+
+/** Decoder status flags. */
+enum pt_status_flag {
+	/** There is an event pending. */
+	pts_event_pending	= 1 << 0,
+
+	/** The address has been suppressed. */
+	pts_ip_suppressed	= 1 << 1,
+
+	/** There is no more trace data available. */
+	pts_eos			= 1 << 2
+};
 
 /** Allocate an Intel PT query decoder.
  *
@@ -1910,8 +2422,16 @@ extern pt_export int pt_image_set_callback(struct pt_image *image,
  * the execution flow.
  */
 enum pt_insn_class {
-	/* The instruction could not be classified. */
+#if (LIBIPT_VERSION >= 0x201)
+	/* The instruction has not been classified. */
+	ptic_unknown,
+
+	/* For backwards compatibility. */
+	ptic_error = ptic_unknown,
+#else
+	/* The instruction has not been classified. */
 	ptic_error,
+#endif
 
 	/* The instruction is something not listed below. */
 	ptic_other,
@@ -1944,7 +2464,12 @@ enum pt_insn_class {
 	ptic_far_jump,
 
 	/* The instruction is a PTWRITE. */
-	ptic_ptwrite
+	ptic_ptwrite,
+
+#if (LIBIPT_VERSION >= 0x201)
+	/* The instruction is an indirect jump or a far transfer. */
+	ptic_indirect,
+#endif
 };
 
 /** The maximal size of an instruction. */
@@ -2233,9 +2758,10 @@ struct pt_block {
 
 	/** The instruction class for the last instruction in this block.
 	 *
-	 * This field may be set to ptic_error to indicate that the instruction
-	 * class is not available.  The block decoder may choose to not provide
-	 * the instruction class in some cases for performance reasons.
+	 * This field may be set to ptic_unknown (ptic_error prior to v2.1) to
+	 * indicate that the instruction class is not available.  The block
+	 * decoder may choose to not provide the instruction class in some
+	 * cases for performance reasons.
 	 */
 	enum pt_insn_class iclass;
 
