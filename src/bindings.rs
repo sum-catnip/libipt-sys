@@ -168,7 +168,7 @@ pub const pt_error_code_pte_overflow: pt_error_code = 25;
 pub const pt_error_code_pte_bad_file: pt_error_code = 26;
 pub const pt_error_code_pte_bad_cpu: pt_error_code = 27;
 #[doc = " Error codes."]
-pub type pt_error_code = ::std::os::raw::c_uint;
+pub type pt_error_code = i32;
 extern "C" {
     #[doc = " Return a human readable error string."]
     pub fn pt_errstr(arg1: pt_error_code) -> *const ::std::os::raw::c_char;
@@ -176,7 +176,7 @@ extern "C" {
 pub const pt_cpu_vendor_pcv_unknown: pt_cpu_vendor = 0;
 pub const pt_cpu_vendor_pcv_intel: pt_cpu_vendor = 1;
 #[doc = " A cpu vendor."]
-pub type pt_cpu_vendor = ::std::os::raw::c_uint;
+pub type pt_cpu_vendor = i32;
 #[doc = " A cpu identifier."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -961,7 +961,7 @@ pub const pt_packet_type_ppt_ptw: pt_packet_type = 26;
 pub const pt_packet_type_ppt_cfe: pt_packet_type = 27;
 pub const pt_packet_type_ppt_evd: pt_packet_type = 28;
 #[doc = " Intel PT packet types."]
-pub type pt_packet_type = ::std::os::raw::c_uint;
+pub type pt_packet_type = i32;
 pub const pt_ip_compression_pt_ipc_suppressed: pt_ip_compression = 0;
 pub const pt_ip_compression_pt_ipc_update_16: pt_ip_compression = 1;
 pub const pt_ip_compression_pt_ipc_update_32: pt_ip_compression = 2;
@@ -969,17 +969,17 @@ pub const pt_ip_compression_pt_ipc_sext_48: pt_ip_compression = 3;
 pub const pt_ip_compression_pt_ipc_update_48: pt_ip_compression = 4;
 pub const pt_ip_compression_pt_ipc_full: pt_ip_compression = 6;
 #[doc = " The IP compression."]
-pub type pt_ip_compression = ::std::os::raw::c_uint;
+pub type pt_ip_compression = i32;
 pub const pt_exec_mode_ptem_unknown: pt_exec_mode = 0;
 pub const pt_exec_mode_ptem_16bit: pt_exec_mode = 1;
 pub const pt_exec_mode_ptem_32bit: pt_exec_mode = 2;
 pub const pt_exec_mode_ptem_64bit: pt_exec_mode = 3;
 #[doc = " An execution mode."]
-pub type pt_exec_mode = ::std::os::raw::c_uint;
+pub type pt_exec_mode = i32;
 pub const pt_mode_leaf_pt_mol_exec: pt_mode_leaf = 0;
 pub const pt_mode_leaf_pt_mol_tsx: pt_mode_leaf = 32;
 #[doc = " Mode packet leaves."]
-pub type pt_mode_leaf = ::std::os::raw::c_uint;
+pub type pt_mode_leaf = i32;
 #[doc = " A TNT-8 or TNT-64 packet."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -1533,7 +1533,7 @@ pub const pt_cfe_type_pt_cfe_vmexit_intr: pt_cfe_type = 9;
 pub const pt_cfe_type_pt_cfe_shutdown: pt_cfe_type = 10;
 pub const pt_cfe_type_pt_cfe_uintr: pt_cfe_type = 12;
 pub const pt_cfe_type_pt_cfe_uiret: pt_cfe_type = 13;
-pub type pt_cfe_type = ::std::os::raw::c_uint;
+pub type pt_cfe_type = i32;
 pub const pt_cfe_intr_pt_cfe_intr_de: pt_cfe_intr = 0;
 pub const pt_cfe_intr_pt_cfe_intr_db: pt_cfe_intr = 1;
 pub const pt_cfe_intr_pt_cfe_intr_nmi: pt_cfe_intr = 2;
@@ -1554,7 +1554,7 @@ pub const pt_cfe_intr_pt_cfe_intr_mc: pt_cfe_intr = 18;
 pub const pt_cfe_intr_pt_cfe_intr_xm: pt_cfe_intr = 19;
 pub const pt_cfe_intr_pt_cfe_intr_ve: pt_cfe_intr = 20;
 pub const pt_cfe_intr_pt_cfe_intr_cp: pt_cfe_intr = 21;
-pub type pt_cfe_intr = ::std::os::raw::c_uint;
+pub type pt_cfe_intr = i32;
 #[doc = " A CFE packet."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -1601,7 +1601,7 @@ impl pt_packet_cfe {
 pub const pt_evd_type_pt_evd_cr2: pt_evd_type = 0;
 pub const pt_evd_type_pt_evd_vmxq: pt_evd_type = 1;
 pub const pt_evd_type_pt_evd_vmxr: pt_evd_type = 2;
-pub type pt_evd_type = ::std::os::raw::c_uint;
+pub type pt_evd_type = i32;
 #[doc = " A EVD packet."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -1847,7 +1847,7 @@ pub const pt_event_type_ptev_shutdown: pt_event_type = 31;
 pub const pt_event_type_ptev_uintr: pt_event_type = 32;
 pub const pt_event_type_ptev_uiret: pt_event_type = 33;
 #[doc = " Event types."]
-pub type pt_event_type = ::std::os::raw::c_uint;
+pub type pt_event_type = i32;
 #[doc = " An event."]
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -2998,7 +2998,7 @@ pub const pt_status_flag_pts_ip_suppressed: pt_status_flag = 2;
 #[doc = " There is no more trace data available."]
 pub const pt_status_flag_pts_eos: pt_status_flag = 4;
 #[doc = " Decoder status flags."]
-pub type pt_status_flag = ::std::os::raw::c_uint;
+pub type pt_status_flag = i32;
 extern "C" {
     #[doc = " Allocate an Intel PT query decoder.\n\n The decoder will work on the buffer defined in \\@config, it shall contain\n raw trace data and remain valid for the lifetime of the decoder.\n\n The decoder needs to be synchronized before it can be used."]
     pub fn pt_qry_alloc_decoder(config: *const pt_config) -> *mut pt_query_decoder;
@@ -3240,10 +3240,10 @@ pub const pt_insn_class_ptic_far_jump: pt_insn_class = 8;
 pub const pt_insn_class_ptic_ptwrite: pt_insn_class = 9;
 pub const pt_insn_class_ptic_indirect: pt_insn_class = 10;
 #[doc = " The instruction class.\n\n We provide only a very coarse classification suitable for reconstructing\n the execution flow."]
-pub type pt_insn_class = ::std::os::raw::c_uint;
+pub type pt_insn_class = i32;
 pub const pt_max_insn_size: _bindgen_ty_1 = 15;
 #[doc = " The maximal size of an instruction."]
-pub type _bindgen_ty_1 = ::std::os::raw::c_uint;
+pub type _bindgen_ty_1 = i32;
 #[doc = " A single traced instruction."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
