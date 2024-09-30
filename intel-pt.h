@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2023, Intel Corporation
+ * Copyright (c) 2013-2024, Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * Redistribution and use in source and binary forms, with or without
@@ -83,7 +83,7 @@ struct pt_block_decoder;
 /** The header version. */
 #define LIBIPT_VERSION_MAJOR 2
 #define LIBIPT_VERSION_MINOR 1
-#define LIBIPT_VERSION_PATCH 0
+#define LIBIPT_VERSION_PATCH 1
 
 #define LIBIPT_VERSION ((LIBIPT_VERSION_MAJOR << 8) + LIBIPT_VERSION_MINOR)
 
