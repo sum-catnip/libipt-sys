@@ -960,6 +960,7 @@ pub const pt_packet_type_ppt_pwrx: pt_packet_type = 25;
 pub const pt_packet_type_ppt_ptw: pt_packet_type = 26;
 pub const pt_packet_type_ppt_cfe: pt_packet_type = 27;
 pub const pt_packet_type_ppt_evd: pt_packet_type = 28;
+pub const pt_packet_type_ppt_trig: pt_packet_type = 29;
 #[doc = " Intel PT packet types."]
 pub type pt_packet_type = i32;
 pub const pt_ip_compression_pt_ipc_suppressed: pt_ip_compression = 0;
@@ -1620,6 +1621,80 @@ const _: () = {
     ["Offset of field: pt_packet_evd::payload"]
         [::std::mem::offset_of!(pt_packet_evd, payload) - 8usize];
 };
+#[doc = " A TRIG packet."]
+#[repr(C)]
+#[repr(align(4))]
+#[derive(Debug, Copy, Clone)]
+pub struct pt_packet_trig {
+    #[doc = " A bit vector of triggers that are represented by this packet."]
+    pub trbv: u8,
+    #[doc = " An instruction count from the last IP packet (FUP, TIP*, or TNT)\n indicating the instruction to which this packet is attributed.\n\n This field is only valid if \\@icntv is set."]
+    pub icnt: u16,
+    pub _bitfield_align_1: [u8; 0],
+    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 1usize]>,
+    pub __bindgen_padding_0: [u8; 3usize],
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of pt_packet_trig"][::std::mem::size_of::<pt_packet_trig>() - 8usize];
+    ["Alignment of pt_packet_trig"][::std::mem::align_of::<pt_packet_trig>() - 4usize];
+    ["Offset of field: pt_packet_trig::trbv"]
+        [::std::mem::offset_of!(pt_packet_trig, trbv) - 0usize];
+    ["Offset of field: pt_packet_trig::icnt"]
+        [::std::mem::offset_of!(pt_packet_trig, icnt) - 2usize];
+};
+impl pt_packet_trig {
+    #[inline]
+    pub fn ip(&self) -> u32 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(0usize, 1u8) as u32) }
+    }
+    #[inline]
+    pub fn set_ip(&mut self, val: u32) {
+        unsafe {
+            let val: u32 = ::std::mem::transmute(val);
+            self._bitfield_1.set(0usize, 1u8, val as u64)
+        }
+    }
+    #[inline]
+    pub fn icntv(&self) -> u32 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(1usize, 1u8) as u32) }
+    }
+    #[inline]
+    pub fn set_icntv(&mut self, val: u32) {
+        unsafe {
+            let val: u32 = ::std::mem::transmute(val);
+            self._bitfield_1.set(1usize, 1u8, val as u64)
+        }
+    }
+    #[inline]
+    pub fn mult(&self) -> u32 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(2usize, 1u8) as u32) }
+    }
+    #[inline]
+    pub fn set_mult(&mut self, val: u32) {
+        unsafe {
+            let val: u32 = ::std::mem::transmute(val);
+            self._bitfield_1.set(2usize, 1u8, val as u64)
+        }
+    }
+    #[inline]
+    pub fn new_bitfield_1(ip: u32, icntv: u32, mult: u32) -> __BindgenBitfieldUnit<[u8; 1usize]> {
+        let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 1usize]> = Default::default();
+        __bindgen_bitfield_unit.set(0usize, 1u8, {
+            let ip: u32 = unsafe { ::std::mem::transmute(ip) };
+            ip as u64
+        });
+        __bindgen_bitfield_unit.set(1usize, 1u8, {
+            let icntv: u32 = unsafe { ::std::mem::transmute(icntv) };
+            icntv as u64
+        });
+        __bindgen_bitfield_unit.set(2usize, 1u8, {
+            let mult: u32 = unsafe { ::std::mem::transmute(mult) };
+            mult as u64
+        });
+        __bindgen_bitfield_unit
+    }
+}
 #[doc = " An unknown packet."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -1688,6 +1763,8 @@ pub union pt_packet__bindgen_ty_1 {
     pub cfe: pt_packet_cfe,
     #[doc = " Packet: evd."]
     pub evd: pt_packet_evd,
+    #[doc = " Packet: trig."]
+    pub trig: pt_packet_trig,
     #[doc = " Packet: unknown."]
     pub unknown: pt_packet_unknown,
 }
@@ -1732,6 +1809,8 @@ const _: () = {
         [::std::mem::offset_of!(pt_packet__bindgen_ty_1, cfe) - 0usize];
     ["Offset of field: pt_packet__bindgen_ty_1::evd"]
         [::std::mem::offset_of!(pt_packet__bindgen_ty_1, evd) - 0usize];
+    ["Offset of field: pt_packet__bindgen_ty_1::trig"]
+        [::std::mem::offset_of!(pt_packet__bindgen_ty_1, trig) - 0usize];
     ["Offset of field: pt_packet__bindgen_ty_1::unknown"]
         [::std::mem::offset_of!(pt_packet__bindgen_ty_1, unknown) - 0usize];
 };
@@ -1846,6 +1925,7 @@ pub const pt_event_type_ptev_vmexit: pt_event_type = 30;
 pub const pt_event_type_ptev_shutdown: pt_event_type = 31;
 pub const pt_event_type_ptev_uintr: pt_event_type = 32;
 pub const pt_event_type_ptev_uiret: pt_event_type = 33;
+pub const pt_event_type_ptev_trig: pt_event_type = 34;
 #[doc = " Event types."]
 pub type pt_event_type = i32;
 #[doc = " An event."]
@@ -1901,6 +1981,7 @@ pub union pt_event__bindgen_ty_1 {
     pub shutdown: pt_event__bindgen_ty_1__bindgen_ty_31,
     pub uintr: pt_event__bindgen_ty_1__bindgen_ty_32,
     pub uiret: pt_event__bindgen_ty_1__bindgen_ty_33,
+    pub trig: pt_event__bindgen_ty_1__bindgen_ty_34,
 }
 #[doc = " Event: enabled."]
 #[repr(C)]
@@ -2808,6 +2889,55 @@ const _: () = {
     ["Offset of field: pt_event__bindgen_ty_1__bindgen_ty_33::ip"]
         [::std::mem::offset_of!(pt_event__bindgen_ty_1__bindgen_ty_33, ip) - 0usize];
 };
+#[doc = " Event: trigger."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct pt_event__bindgen_ty_1__bindgen_ty_34 {
+    #[doc = " A bit vector of triggers represented by this event.\n\n Triggers are configured via IA32_RTIT_TRIGGERx_CFG."]
+    pub trbv: u8,
+    #[doc = " The number of instructions after the anchor.\n\n The insn and block decoders will attempty to reduce\n \\@icount to zero and update \\@ip.\n\n This field is not valid, if \\@ip_suppressed is set."]
+    pub icnt: u16,
+    #[doc = " The address of the anchor instruction.\n\n If this field is zero, use the address of the last\n trig, tip, tip.pge, or async event, or the address\n after applying the final bit in the last tnt event.\n\n The insn and block decoders will supply a non-zero\n address or set \\@ip_suppressed.\n\n The event is reported when reaching the instruction\n address before the instruction itself to correctly\n handle cases where the instruction faults.\n\n This field is not valid, if \\@ip_suppressed is set."]
+    pub ip: u64,
+    pub _bitfield_align_1: [u8; 0],
+    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 1usize]>,
+    pub __bindgen_padding_0: [u8; 7usize],
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of pt_event__bindgen_ty_1__bindgen_ty_34"]
+        [::std::mem::size_of::<pt_event__bindgen_ty_1__bindgen_ty_34>() - 24usize];
+    ["Alignment of pt_event__bindgen_ty_1__bindgen_ty_34"]
+        [::std::mem::align_of::<pt_event__bindgen_ty_1__bindgen_ty_34>() - 8usize];
+    ["Offset of field: pt_event__bindgen_ty_1__bindgen_ty_34::trbv"]
+        [::std::mem::offset_of!(pt_event__bindgen_ty_1__bindgen_ty_34, trbv) - 0usize];
+    ["Offset of field: pt_event__bindgen_ty_1__bindgen_ty_34::icnt"]
+        [::std::mem::offset_of!(pt_event__bindgen_ty_1__bindgen_ty_34, icnt) - 2usize];
+    ["Offset of field: pt_event__bindgen_ty_1__bindgen_ty_34::ip"]
+        [::std::mem::offset_of!(pt_event__bindgen_ty_1__bindgen_ty_34, ip) - 8usize];
+};
+impl pt_event__bindgen_ty_1__bindgen_ty_34 {
+    #[inline]
+    pub fn mult(&self) -> u32 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(0usize, 1u8) as u32) }
+    }
+    #[inline]
+    pub fn set_mult(&mut self, val: u32) {
+        unsafe {
+            let val: u32 = ::std::mem::transmute(val);
+            self._bitfield_1.set(0usize, 1u8, val as u64)
+        }
+    }
+    #[inline]
+    pub fn new_bitfield_1(mult: u32) -> __BindgenBitfieldUnit<[u8; 1usize]> {
+        let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 1usize]> = Default::default();
+        __bindgen_bitfield_unit.set(0usize, 1u8, {
+            let mult: u32 = unsafe { ::std::mem::transmute(mult) };
+            mult as u64
+        });
+        __bindgen_bitfield_unit
+    }
+}
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
     ["Size of pt_event__bindgen_ty_1"][::std::mem::size_of::<pt_event__bindgen_ty_1>() - 32usize];
@@ -2879,6 +3009,8 @@ const _: () = {
         [::std::mem::offset_of!(pt_event__bindgen_ty_1, uintr) - 0usize];
     ["Offset of field: pt_event__bindgen_ty_1::uiret"]
         [::std::mem::offset_of!(pt_event__bindgen_ty_1, uiret) - 0usize];
+    ["Offset of field: pt_event__bindgen_ty_1::trig"]
+        [::std::mem::offset_of!(pt_event__bindgen_ty_1, trig) - 0usize];
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {

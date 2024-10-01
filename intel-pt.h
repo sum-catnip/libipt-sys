@@ -82,8 +82,8 @@ struct pt_block_decoder;
 
 /** The header version. */
 #define LIBIPT_VERSION_MAJOR 2
-#define LIBIPT_VERSION_MINOR 1
-#define LIBIPT_VERSION_PATCH 1
+#define LIBIPT_VERSION_MINOR 2
+#define LIBIPT_VERSION_PATCH 0
 
 #define LIBIPT_VERSION ((LIBIPT_VERSION_MAJOR << 8) + LIBIPT_VERSION_MINOR)
 
@@ -315,7 +315,7 @@ struct pt_errata {
 	 *
 	 * Certain Intel PT (Processor Trace) packets including FUPs (Flow
 	 * Update Packets), should be issued only between TIP.PGE (Target IP
-	 * Packet - Packet Generaton Enable) and TIP.PGD (Target IP Packet -
+	 * Packet - Packet Generation Enable) and TIP.PGD (Target IP Packet -
 	 * Packet Generation Disable) packets.  When outside a TIP.PGE/TIP.PGD
 	 * pair, as a result of IA32_RTIT_STATUS.FilterEn[0] (MSR 571H) being
 	 * cleared, an OVF (Overflow) packet may be unexpectedly followed by a
@@ -323,7 +323,7 @@ struct pt_errata {
 	 */
 	uint32_t apl12:1;
 
-	/** APL11: Intel(R) PT OVF Pakcet May Be Followed by TIP.PGD Packet
+	/** APL11: Intel(R) PT OVF Packet May Be Followed by TIP.PGD Packet
 	 *
 	 * If Intel PT (Processor Trace) encounters an internal buffer overflow
 	 * and generates an OVF (Overflow) packet just as IA32_RTIT_CTL (MSR
@@ -614,6 +614,9 @@ enum pt_packet_type {
 #if (LIBIPT_VERSION >= 0x201)
 	ppt_cfe,
 	ppt_evd,
+#endif
+#if (LIBIPT_VERSION >= 0x202)
+	ppt_trig,
 #endif
 };
 
@@ -973,6 +976,34 @@ struct pt_packet_evd {
 };
 #endif /* (LIBIPT_VERSION >= 0x201) */
 
+#if (LIBIPT_VERSION >= 0x202)
+/** A TRIG packet. */
+struct pt_packet_trig {
+	/** A bit vector of triggers that are represented by this packet. */
+	uint8_t trbv;
+
+	/** An instruction count from the last IP packet (FUP, TIP*, or TNT)
+	 * indicating the instruction to which this packet is attributed.
+	 *
+	 * This field is only valid if \@icntv is set.
+	 */
+	uint16_t icnt;
+
+	/** A flag saying whether a FUP is following TRIG that provides a
+	 * reference IP from which to start counting.
+	 */
+	uint32_t ip:1;
+
+	/** A flag saying whether the \@icnt field is valid.*/
+	uint32_t icntv:1;
+
+	/** A flag saying whether there were other triggers firing that are not
+	 * reported.
+	 */
+	uint32_t mult:1;
+};
+#endif /* (LIBIPT_VERSION >= 0x202) */
+
 /** An unknown packet decodable by the optional decoder callback. */
 struct pt_packet_unknown {
 	/** Pointer to the raw packet bytes. */
@@ -1051,6 +1082,10 @@ struct pt_packet {
 
 		/** Packet: evd. */
 		struct pt_packet_evd evd;
+#endif
+#if (LIBIPT_VERSION >= 0x202)
+		/** Packet: trig. */
+		struct pt_packet_trig trig;
 #endif
 		/** Packet: unknown. */
 		struct pt_packet_unknown unknown;
@@ -1350,6 +1385,10 @@ enum pt_event_type {
 
 	/* A return from user interrupt. */
 	ptev_uiret,
+#endif
+#if (LIBIPT_VERSION >= 0x202)
+	/* A trigger event. */
+	ptev_trig,
 #endif
 };
 
@@ -1842,6 +1881,48 @@ struct pt_event {
 			uint64_t ip;
 		} uiret;
 #endif /* (LIBIPT_VERSION >= 0x201) */
+
+#if (LIBIPT_VERSION >= 0x202)
+		/** Event: trigger. */
+		struct {
+			/** A bit vector of triggers represented by this event.
+			 *
+			 * Triggers are configured via IA32_RTIT_TRIGGERx_CFG.
+			 */
+			uint8_t trbv;
+
+			/** The number of instructions after the anchor.
+			 *
+			 * The insn and block decoders will attempty to reduce
+			 * \@icount to zero and update \@ip.
+			 *
+			 * This field is not valid, if \@ip_suppressed is set.
+			 */
+			uint16_t icnt;
+
+			/** The address of the anchor instruction.
+			 *
+			 * If this field is zero, use the address of the last
+			 * trig, tip, tip.pge, or async event, or the address
+			 * after applying the final bit in the last tnt event.
+			 *
+			 * The insn and block decoders will supply a non-zero
+			 * address or set \@ip_suppressed.
+			 *
+			 * The event is reported when reaching the instruction
+			 * address before the instruction itself to correctly
+			 * handle cases where the instruction faults.
+			 *
+			 * This field is not valid, if \@ip_suppressed is set.
+			 */
+			uint64_t ip;
+
+			/** A flag saying whether there were other triggers
+			 * firing that are not reported.
+			 */
+			uint32_t mult:1;
+		} trig;
+#endif /* (LIBIPT_VERSION >= 0x202) */
 	} variant;
 };
 
