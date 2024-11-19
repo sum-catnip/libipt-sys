@@ -2,7 +2,6 @@ use cmake::Config;
 
 fn main() {
     let dst = Config::new("libipt")
-        .define("CMAKE_BUILD_TYPE", "Release")
         .define("BUILD_SHARED_LIBS", "OFF")
         .build();
 
