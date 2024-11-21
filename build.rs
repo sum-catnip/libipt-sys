@@ -39,7 +39,11 @@ fn main() {
 
 fn check_submodule(dir: &str) {
     let path = Path::new(dir);
-    if !path.exists() || path.iter().next().is_none() {
+    if !path.exists()
+        || !path
+            .read_dir()
+            .is_ok_and(|mut content| content.next().is_some())
+    {
         let error = format!("{dir} directory not found or empty");
         println!("cargo:warning={error}");
         println!(

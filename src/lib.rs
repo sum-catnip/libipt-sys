@@ -10,6 +10,13 @@ mod test {
     #[test]
     fn libipt_version() {
         let libipt_version = unsafe { pt_library_version() };
-        assert_eq!((libipt_version.major, libipt_version.minor, libipt_version.patch), (2, 1, 1));
+        assert_eq!(
+            (
+                libipt_version.major,
+                libipt_version.minor,
+                libipt_version.patch
+            ),
+            (2, 1, 1)
+        );
     }
 }
