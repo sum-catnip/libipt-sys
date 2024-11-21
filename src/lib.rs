@@ -1,15 +1,15 @@
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
-
-include!("bindings.rs");
+include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 #[cfg(test)]
 mod test {
     use super::*;
 
     #[test]
-    fn test_lib_link() {
-        unsafe { pt_library_version() };
+    fn libipt_version() {
+        let libipt_version = unsafe { pt_library_version() };
+        assert_eq!((libipt_version.major, libipt_version.minor, libipt_version.patch), (2, 1, 1));
     }
 }
