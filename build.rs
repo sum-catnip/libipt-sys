@@ -28,6 +28,8 @@ fn main() {
         .allowlist_function("pt_.*")
         .allowlist_type("pt_.*")
         .allowlist_var("pt_.*")
+        .derive_debug(true)
+        .impl_debug(true)
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .generate()
         .expect("Unable to generate libipt bindings");
