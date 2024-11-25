@@ -19,6 +19,9 @@ fn main() {
                 Command::new("git")
                     .current_dir(&out_dir)
                     .arg("clone")
+                    .arg("--branch")
+                    .arg("master")
+                    .arg("--single-branch")
                     .arg("--depth")
                     .arg("1")
                     .arg(LIBIPT_GIT)
@@ -30,7 +33,7 @@ fn main() {
         } else {
             assert!(
                 Command::new("git")
-                    .current_dir(&out_dir)
+                    .current_dir(&path)
                     .arg("pull")
                     .status()
                     .unwrap()
