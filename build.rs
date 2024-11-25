@@ -1,15 +1,51 @@
 use cmake::Config;
 use std::env;
 use std::path::Path;
+use std::process::Command;
 
-const LIBIPT_SOURCE: &str = "libipt";
+const LIBIPT_GIT: &str = "https://github.com/intel/libipt.git";
 
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
+    let libipt_source = if cfg!(feature = "libipt_master") {
+        println!("cargo:warning=`libipt_master` feature enabled, the master branch of libipt from Github will be used.");
+        println!(
+            "cargo:warning=The usage of this feature is discouraged and can cause build failures"
+        );
 
-    check_submodule(LIBIPT_SOURCE);
+        let path = Path::new(&out_dir).join("libipt");
+        if !path.exists() {
+            assert!(
+                Command::new("git")
+                    .current_dir(&out_dir)
+                    .arg("clone")
+                    .arg("--depth")
+                    .arg("1")
+                    .arg(LIBIPT_GIT)
+                    .status()
+                    .unwrap()
+                    .success(),
+                "Failed to clone libipt repository"
+            );
+        } else {
+            assert!(
+                Command::new("git")
+                    .current_dir(&out_dir)
+                    .arg("pull")
+                    .status()
+                    .unwrap()
+                    .success(),
+                "Failed to pull libipt repository"
+            );
+        }
+        path
+    } else {
+        Path::new("libipt").to_path_buf()
+    };
 
-    let dst = Config::new("libipt")
+    check_submodule(&libipt_source);
+
+    let dst = Config::new(&libipt_source)
         .define("BUILD_SHARED_LIBS", "OFF")
         .build();
 
@@ -39,14 +75,14 @@ fn main() {
         .expect("Couldn't write bindings!");
 }
 
-fn check_submodule(dir: &str) {
-    let path = Path::new(dir);
+fn check_submodule<P: AsRef<Path>>(path: P) {
+    let path = path.as_ref();
     if !path.exists()
         || !path
             .read_dir()
             .is_ok_and(|mut content| content.next().is_some())
     {
-        let error = format!("{dir} directory not found or empty");
+        let error = format!("{} directory not found or empty", path.display());
         println!("cargo:warning={error}");
         println!(
             "cargo:warning=Hint: Please get the submodules with `git submodule update --init --recursive`"

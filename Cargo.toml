@@ -23,6 +23,10 @@ exclude = [
   "libipt/README",
 ]
 
+[features]
+# Use the master branch of libipt from GitHub instead of the included libipt submodule.
+libipt_master = []
+
 [build-dependencies]
 cmake = "0.1.50"
 bindgen = "0.70.1"
