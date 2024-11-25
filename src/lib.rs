@@ -8,6 +8,7 @@ mod test {
     use super::*;
 
     #[test]
+    #[cfg(not(feature = "libipt_master"))]
     fn libipt_version() {
         let libipt_version = unsafe { pt_library_version() };
         assert_eq!(
