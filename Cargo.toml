@@ -3,7 +3,7 @@ name = "libipt-sys"
 description = "raw bindings to the libipt intel processor tracing library"
 repository = "https://github.com/sum-catnip/libipt-sys"
 license = "MIT"
-version = "0.2.1-beta.2"
+version = "0.2.1-beta.3"
 documentation = "https://docs.rs/libipt-sys/"
 authors = ["catnip <catnip@catnip.fyi>", "Marcondiro"]
 edition = "2021"
@@ -29,4 +29,4 @@ libipt_master = []
 
 [build-dependencies]
 cmake = "0.1.50"
-bindgen = "0.70.1"
+bindgen = "0.71.1"
