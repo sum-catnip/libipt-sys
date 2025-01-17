@@ -69,6 +69,8 @@ fn main() {
         .allowlist_var("pt_.*")
         .derive_debug(true)
         .impl_debug(true)
+        .derive_eq(true)
+        .derive_hash(true)
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .generate()
         .expect("Unable to generate libipt bindings");
