@@ -3,9 +3,12 @@ name = "libipt-sys"
 description = "raw bindings to the libipt intel processor tracing library"
 repository = "https://github.com/sum-catnip/libipt-sys"
 license = "MIT"
-version = "0.2.1-beta.3"
+version = "0.2.1"
 documentation = "https://docs.rs/libipt-sys/"
-authors = ["catnip <catnip@catnip.fyi>", "Marcondiro"]
+authors = [
+  "catnip <catnip@catnip.fyi>",
+  "Marcondiro <cavenatimarco+libiptrs@gmail.com>",
+]
 edition = "2021"
 exclude = [
   "libipt/doc",
