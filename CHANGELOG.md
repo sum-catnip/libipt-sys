@@ -2,6 +2,11 @@
 
 _This changelog documents only changes relevant to users, internal changes might be omitted._
 
+## [Unreleased]
+
+### Changed
+- Bump libipt `v2.1.1` -> `v2.1.2`
+
 ## [0.2.1] 2025/01
 
 ### Added
