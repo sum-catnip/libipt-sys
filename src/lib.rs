@@ -21,7 +21,7 @@ mod test {
                 libipt_version.minor,
                 libipt_version.patch
             ),
-            (2, 1, 1)
+            (2, 1, 2)
         );
     }
 }
