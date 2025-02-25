@@ -1,4 +1,4 @@
-# libipt-sys
+# libipt-sys [![](https://img.shields.io/crates/v/libipt-sys.svg)](https://crates.io/crates/libipt-sys)
 low level bindgen bindings for the [libipt](https://github.com/intel/libipt) library.
 
 ## building
