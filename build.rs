@@ -50,6 +50,8 @@ fn main() {
 
     let dst = Config::new(&libipt_source)
         .define("BUILD_SHARED_LIBS", "OFF")
+        // temporary fix for https://github.com/intel/libipt/issues/114
+        .define("CMAKE_POLICY_VERSION_MINIMUM", "3.5")
         .build();
 
     #[cfg(windows)]
