@@ -13,4 +13,4 @@ If that doesn't work, make sure you got all the requirements covered.
 
 - a working rust toolchain
 - a working c compiler that can be found by cmake
-- cmake 2.8.6+
+- cmake 3.5+
