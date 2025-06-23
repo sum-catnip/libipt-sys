@@ -32,4 +32,4 @@ libipt_master = []
 
 [build-dependencies]
 cmake = "0.1.50"
-bindgen = "0.71.1"
+bindgen = "0.72.0"
