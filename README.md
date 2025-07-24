@@ -1,16 +1,19 @@
-# libipt-sys [![](https://img.shields.io/crates/v/libipt-sys.svg)](https://crates.io/crates/libipt-sys)
-low level bindgen bindings for the [libipt](https://github.com/intel/libipt) library.
+# libipt-sys [![crates.io](https://img.shields.io/crates/v/libipt-sys.svg)](https://crates.io/crates/libipt-sys)
 
-## building
+This crate contains bindgen-generated bindings for [Intel's libipt](https://github.com/intel/libipt) library.
 
-clone this repo and the submodules with
-> git clone https://github.com/sum-catnip/libipt-sys.git --recursive
+## Building
 
-simply run `cargo build` and you should be fine.
-If that doesn't work, make sure you got all the requirements covered.
+1. Clone this repo and the submodule
 
-## requirements
+    ```sh
+    git clone --recursive https://github.com/sum-catnip/libipt-sys.git
+    ```
 
-- a working rust toolchain
-- a working c compiler that can be found by cmake
+2. Run `cargo build` and you should be fine. If that doesn't work, make sure you got all the requirements covered.
+
+## Requirements
+
+- a rust toolchain
+- a C compiler that can be found by cmake
 - cmake 3.5+

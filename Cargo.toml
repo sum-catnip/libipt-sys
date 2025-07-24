@@ -1,9 +1,9 @@
 [package]
 name = "libipt-sys"
-description = "raw bindings to the libipt intel processor tracing library"
+description = "Bindgen-generated bindings for Intel's libipt (Processor Trace) library"
 repository = "https://github.com/sum-catnip/libipt-sys"
 license = "MIT"
-version = "0.2.3"
+version = "0.2.4"
 documentation = "https://docs.rs/libipt-sys/"
 authors = [
   "catnip <catnip@catnip.fyi>",
