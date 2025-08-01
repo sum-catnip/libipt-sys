@@ -28,3 +28,18 @@ jobs:
         run: cargo test --verbose --release
       - name: Clippy
         run: rustup component add clippy && cargo clippy
+
+  bench:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+        toolchain: [nightly]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Setup toolchain
+        run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - name: Run benchmarks
+        run: cargo bench --verbose

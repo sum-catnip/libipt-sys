@@ -11,6 +11,8 @@ authors = [
 ]
 edition = "2021"
 exclude = [
+  "benches",
+  "resources/benches",
   "libipt/doc",
   "libipt/pevent",
   "libipt/ptdump",

@@ -8,7 +8,7 @@
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
 
     #[test]
