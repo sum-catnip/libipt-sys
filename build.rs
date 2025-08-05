@@ -8,7 +8,9 @@ const LIBIPT_GIT: &str = "https://github.com/intel/libipt.git";
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
     let libipt_source = if cfg!(feature = "libipt_master") {
-        println!("cargo:warning=`libipt_master` feature enabled, the master branch of libipt from Github will be used.");
+        println!(
+            "cargo:warning=`libipt_master` feature enabled, the master branch of libipt from Github will be used."
+        );
         println!(
             "cargo:warning=The usage of this feature is discouraged and can cause build failures"
         );

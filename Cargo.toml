@@ -9,7 +9,7 @@ authors = [
   "catnip <catnip@catnip.fyi>",
   "Marcondiro <cavenatimarco+libiptrs@gmail.com>",
 ]
-edition = "2021"
+edition = "2024"
 exclude = [
   "benches",
   "resources/benches",
