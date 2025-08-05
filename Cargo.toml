@@ -10,6 +10,7 @@ authors = [
   "Marcondiro <cavenatimarco+libiptrs@gmail.com>",
 ]
 edition = "2024"
+rust-version = "1.85.0"
 exclude = [
   "benches",
   "resources/benches",
